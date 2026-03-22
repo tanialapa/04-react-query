@@ -7,9 +7,10 @@ import toast, { Toaster } from "react-hot-toast";
 import Loader from "../Loader/Loader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Modal from "../MovieModal/MovieModal";
-import { useQuery } from "@tanstack/react-query";
 import ReactPaginate from "react-paginate";
 import css from "./App.module.css";
+import { useEffect } from "react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 
 export default function App() {
@@ -19,14 +20,11 @@ export default function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
 
-  const {
-    data,
-    isLoading,
-    isError,
-  } = useQuery({
+  const { data, isLoading, isError, isSuccess, isFetching } = useQuery({
     queryKey: ["movies", query, page],
     queryFn: () => fetchMovies(query, page),
     enabled: query !== "",
+    placeholderData: keepPreviousData,
   });
     
   const movies = data?.results ?? [];
@@ -46,9 +44,11 @@ export default function App() {
     setQuery(newQuery);
     setPage(1);
   };
-  if (!isLoading && query !== "" && movies.length === 0) {
-    toast("No movies found for your request!");
-  }
+ useEffect(() => {
+   if (isSuccess && data.results.length === 0) {
+     toast("No movies found for your request!");
+   }
+ }, [isSuccess, data]);
 
   return (
     <>
@@ -73,6 +73,7 @@ export default function App() {
           previousLabel="←"
         />
       )}
+      {isFetching && !isLoading && <Loader />}
     </>
   );
 }
